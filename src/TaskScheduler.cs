@@ -38,32 +38,31 @@
 
         private void StartThread()
         {
-            try
+            while (true)
             {
-                while (true)
+                BetterTask task;
+
+                // Lock prevents other threads from accessing an object. If another thread is already accessing the object, it will wait until the lock is released.
+                lock (waitingTasks)
                 {
-                    BetterTask task;
+                    if (waitingTasks.Count == 0)
+                        break;
 
-                    // Lock prevents other threads from accessing an object. If another thread is already accessing the object, it will wait until the lock is released.
-                    lock (waitingTasks)
-                    {
-                        if (waitingTasks.Count == 0)
-                            break;
-
-                        task = waitingTasks[0];
-                        waitingTasks.RemoveAt(0);
-                    }
-
-                    task.Thread = Thread.CurrentThread;
-                    task.Action(task);
-                    task.Thread = null;
-
-                    task.OnActionComplete();
+                    task = waitingTasks[0];
+                    waitingTasks.RemoveAt(0);
                 }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
+
+                task.Thread = Thread.CurrentThread;
+
+                try
+                {
+                    task.Action(task);
+                }
+                catch (ThreadInterruptedException) { }
+
+                task.Thread = null;
+
+                task.OnActionComplete();
             }
         }
 
