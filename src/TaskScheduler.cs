@@ -7,11 +7,11 @@
 
         private List<Thread> threads;
 
-        private int tasksPerThread = 1;
+        private const int tasksPerThread = 1;
 
-        private List<BetterTask> waitingTasks;
+        private readonly List<BetterTask> waitingTasks;
 
-        public static void CreateTask(BetterTask task)
+        public static void StartTask(BetterTask task)
         {
             instance ??= new();
             instance.CreateThread(task);
@@ -38,25 +38,32 @@
 
         private void StartThread()
         {
-            while (true)
+            try
             {
-                BetterTask task;
-
-                // Lock prevents other threads from accessing an object. If another thread is already accessing the object, it will wait until the lock is released.
-                lock (waitingTasks)
+                while (true)
                 {
-                    if (waitingTasks.Count == 0)
-                        break;
+                    BetterTask task;
 
-                    task = waitingTasks[0];
-                    waitingTasks.RemoveAt(0);
+                    // Lock prevents other threads from accessing an object. If another thread is already accessing the object, it will wait until the lock is released.
+                    lock (waitingTasks)
+                    {
+                        if (waitingTasks.Count == 0)
+                            break;
+
+                        task = waitingTasks[0];
+                        waitingTasks.RemoveAt(0);
+                    }
+
+                    task.Thread = Thread.CurrentThread;
+                    task.Action(task);
+                    task.Thread = null;
+
+                    task.OnActionComplete();
                 }
-
-                task.Thread = Thread.CurrentThread;
-
-                task.Action();
-
-                task.Thread = null;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
             }
         }
 
