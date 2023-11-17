@@ -3,8 +3,8 @@
     public class BetterTask<TResult> : IDisposable, IAsyncResult, ITask
     {
 
-        internal Func<BetterTask<TResult>, TResult>? Action => Actions.Count > 0 ? Actions[0] : null;
-        internal List<Func<BetterTask<TResult>, TResult>> Actions { get; private set; }
+        internal Func<BetterTask<TResult>, TResult?>? Action => Actions.Count > 0 ? Actions[0] : null;
+        internal List<Func<BetterTask<TResult>, TResult?>> Actions { get; private set; }
 
         internal Thread? Thread { private get; set; }
         Thread? ITask.Thread { get => Thread; set => Thread = value; }
@@ -24,7 +24,7 @@
             {
                 if (value == null)
                 {
-                    Result = default!;
+                    Result = default;
                     return;
                 }
 
@@ -32,12 +32,17 @@
             }
         }
 
-        public BetterTask(Func<BetterTask<TResult>, TResult> action)
+        internal ThreadPriority Priority { get; set; }
+        ThreadPriority ITask.Priority => Priority;
+
+        public BetterTask(Func<BetterTask<TResult>, TResult?> action, ThreadPriority priority = ThreadPriority.Normal)
         {
             cancellationTokenSource = new();
             cancellationToken = cancellationTokenSource.Token;
 
             waitHandle = cancellationToken.WaitHandle;
+
+            Priority = priority;
 
             Actions = new()
             {
@@ -45,41 +50,79 @@
             };
         }
 
-        public BetterTask(Action action) : this(WrapAction(action)) { }
-        public BetterTask(Func<TResult> action) : this(WrapAction(action)) { }
-        public BetterTask(Action<BetterTask<TResult>> action) : this(WrapAction(action)) { }
+        public BetterTask(Action action, ThreadPriority priority = ThreadPriority.Normal) : this(WrapAction(action), priority) { }
+        public BetterTask(Func<TResult?> action, ThreadPriority priority = ThreadPriority.Normal) : this(WrapAction(action), priority) { }
+        public BetterTask(Action<BetterTask<TResult>> action, ThreadPriority priority = ThreadPriority.Normal) : this(WrapAction(action), priority) { }
 
         public void Start()
         {
             TaskScheduler.StartTask(this);
         }
 
-        internal static Func<BetterTask<TResult>, TResult> WrapAction(Action action)
+        /// <summary>
+        /// Creates a new <see cref="BetterTask{TResult}"/> and starts it.
+        /// </summary>
+        /// <returns>The <see cref="BetterTask{TResult}"/> that was created</returns>
+        public static BetterTask<TResult> Run(Func<BetterTask<TResult>, TResult?> action, ThreadPriority priority = ThreadPriority.Normal)
+        {
+            BetterTask<TResult> task = new(action, priority);
+            task.Start();
+            return task;
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="BetterTask{TResult}"/> and starts it.
+        /// </summary>
+        /// <returns>The <see cref="BetterTask{TResult}"/> that was created</returns>
+        public static BetterTask<TResult> Run(Action action, ThreadPriority priority = ThreadPriority.Normal)
+        {
+            return Run(WrapAction(action), priority);
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="BetterTask{TResult}"/> and starts it.
+        /// </summary>
+        /// <returns>The <see cref="BetterTask{TResult}"/> that was created</returns>
+        public static BetterTask<TResult> Run(Func<TResult?> action, ThreadPriority priority = ThreadPriority.Normal)
+        {
+            return Run(WrapAction(action), priority);
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="BetterTask{TResult}"/> and starts it.
+        /// </summary>
+        /// <returns>The <see cref="BetterTask{TResult}"/> that was created</returns>
+        public static BetterTask<TResult> Run(Action<BetterTask<TResult>> action, ThreadPriority priority = ThreadPriority.Normal)
+        {
+            return Run(WrapAction(action), priority);
+        }
+
+        internal static Func<BetterTask<TResult>, TResult?> WrapAction(Action action)
         {
             return (task) =>
             {
                 action();
-                return default!;
+                return task.Result;
             };
         }
 
-        internal static Func<BetterTask<TResult>, TResult> WrapAction(Func<TResult> action)
+        internal static Func<BetterTask<TResult>, TResult?> WrapAction(Func<TResult?> action)
         {
             return (task) => action();
         }
 
-        internal static Func<BetterTask<TResult>, TResult> WrapAction(Action<BetterTask<TResult>> action)
+        internal static Func<BetterTask<TResult>, TResult?> WrapAction(Action<BetterTask<TResult>> action)
         {
             return (task) =>
             {
                 action(task);
-                return default!;
+                return task.Result;
             };
         }
 
         object? ITask.Execute()
         {
-            Func<BetterTask<TResult>, TResult>? action = Action;
+            Func<BetterTask<TResult>, TResult?>? action = Action;
 
             if (action == null)
                 return null;
@@ -93,10 +136,14 @@
                 return;
 
             Actions.RemoveAt(0);
+
+            if (Actions.Count == 0)
+                return;
+
             Start();
         }
 
-        public void ContinueWith(Func<BetterTask<TResult>, TResult> action)
+        public void ContinueWith(Func<BetterTask<TResult>, TResult?> action)
         {
             Actions.Add(action);
         }
@@ -106,12 +153,37 @@
             Actions.Add(WrapAction(action));
         }
 
+        public void ContinueWith(Func<TResult?> action)
+        {
+            Actions.Add(WrapAction(action));
+        }
+
+        public void ContinueWith(Action<BetterTask<TResult>> action)
+        {
+            Actions.Add(WrapAction(action));
+        }
+
         public void Wait()
         {
-            WaitUntilStarted();
-            while (Thread != null)
+            while (!IsCompleted)
             {
                 Thread.Sleep(1);
+            }
+        }
+
+        public static void WaitAll(params BetterTask<TResult>[] tasks)
+        {
+            while (true)
+            {
+            Cont:
+                Thread.Sleep(1);
+                foreach (BetterTask<TResult> task in tasks)
+                {
+                    if (!task.IsCompleted)
+                        goto Cont;
+                }
+
+                break;
             }
         }
 
@@ -185,7 +257,7 @@
         /// </summary>
         public bool CompletedSynchronously => IsCompleted;
 
-        public bool IsCompleted => Actions.Count == 0;
+        public bool IsCompleted => Actions.Count == 0 && Thread == null;
 
         // Allows us to use the await keyword
         public Awaiter<TResult> GetAwaiter()

@@ -9,6 +9,8 @@
 
         internal object? Result { get; set; }
 
+        internal ThreadPriority Priority { get; }
+
         internal object? Execute();
         internal void OnActionComplete();
     }

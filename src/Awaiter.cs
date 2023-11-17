@@ -19,9 +19,9 @@ namespace BetterTasks
 
         public bool IsCompleted { get => task.IsCompleted; }
 
-        public void GetResult()
+        public TResult? GetResult()
         {
-
+            return task.Result;
         }
 
     }
