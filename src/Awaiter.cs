@@ -2,19 +2,19 @@
 
 namespace BetterTasks
 {
-    public class Awaiter : INotifyCompletion
+    public class Awaiter<TResult> : INotifyCompletion
     {
 
-        private readonly BetterTask task;
+        private readonly BetterTask<TResult> task;
 
-        public Awaiter(BetterTask task)
+        public Awaiter(BetterTask<TResult> task)
         {
             this.task = task;
         }
 
         public void OnCompleted(Action continuation)
         {
-            task.ContinueWith((task) => continuation());
+            task.ContinueWith(BetterTask<TResult>.WrapAction(continuation));
         }
 
         public bool IsCompleted { get => task.IsCompleted; }

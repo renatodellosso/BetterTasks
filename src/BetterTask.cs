@@ -1,12 +1,13 @@
 ﻿namespace BetterTasks
 {
-    public class BetterTask : IDisposable, IAsyncResult
+    public class BetterTask<TResult> : IDisposable, IAsyncResult, ITask
     {
 
-        internal Action<BetterTask> Action => Actions[0];
-        internal Thread? Thread { private get; set; }
+        internal Func<BetterTask<TResult>, TResult>? Action => Actions.Count > 0 ? Actions[0] : null;
+        internal List<Func<BetterTask<TResult>, TResult>> Actions { get; private set; }
 
-        internal List<Action<BetterTask>> Actions { get; private set; }
+        internal Thread? Thread { private get; set; }
+        Thread? ITask.Thread { get => Thread; set => Thread = value; }
 
         private readonly CancellationToken cancellationToken;
         private readonly CancellationTokenSource cancellationTokenSource;
@@ -15,7 +16,23 @@
 
         public bool IsCanceled => cancellationToken.IsCancellationRequested;
 
-        public BetterTask(Action action)
+        public TResult? Result { get; internal set; }
+        object? ITask.Result
+        {
+            get => Result;
+            set
+            {
+                if (value == null)
+                {
+                    Result = default!;
+                    return;
+                }
+
+                Result = (TResult?)value;
+            }
+        }
+
+        public BetterTask(Func<BetterTask<TResult>, TResult> action)
         {
             cancellationTokenSource = new();
             cancellationToken = cancellationTokenSource.Token;
@@ -24,31 +41,69 @@
 
             Actions = new()
             {
-                (task) => action()
+                action
             };
         }
+
+        public BetterTask(Action action) : this(WrapAction(action)) { }
+        public BetterTask(Func<TResult> action) : this(WrapAction(action)) { }
+        public BetterTask(Action<BetterTask<TResult>> action) : this(WrapAction(action)) { }
 
         public void Start()
         {
             TaskScheduler.StartTask(this);
         }
 
-        public void OnActionComplete()
+        internal static Func<BetterTask<TResult>, TResult> WrapAction(Action action)
         {
-            Actions.RemoveAt(0);
+            return (task) =>
+            {
+                action();
+                return default!;
+            };
+        }
+
+        internal static Func<BetterTask<TResult>, TResult> WrapAction(Func<TResult> action)
+        {
+            return (task) => action();
+        }
+
+        internal static Func<BetterTask<TResult>, TResult> WrapAction(Action<BetterTask<TResult>> action)
+        {
+            return (task) =>
+            {
+                action(task);
+                return default!;
+            };
+        }
+
+        object? ITask.Execute()
+        {
+            Func<BetterTask<TResult>, TResult>? action = Action;
+
+            if (action == null)
+                return null;
+
+            return action.Invoke(this);
+        }
+
+        void ITask.OnActionComplete()
+        {
             if (Actions.Count == 0)
                 return;
+
+            Actions.RemoveAt(0);
             Start();
         }
 
-        public void ContinueWith(Action<BetterTask> action)
+        public void ContinueWith(Func<BetterTask<TResult>, TResult> action)
         {
             Actions.Add(action);
         }
 
         public void ContinueWith(Action action)
         {
-            Actions.Add((task) => action());
+            Actions.Add(WrapAction(action));
         }
 
         public void Wait()
@@ -61,7 +116,7 @@
         }
 
         /// <summary>
-        /// Waits until the <seealso cref="TaskScheduler"/> starts the task."/>
+        /// Waits until the <see cref="TaskScheduler"/> starts the task."/>
         /// </summary>
         public void WaitUntilStarted()
         {
@@ -83,8 +138,8 @@
         /// </summary>
         public void Abort()
         {
-            // Interrupt throws a ThreadInterruptedException in the thread.
-            Thread?.Interrupt();
+            Actions.Clear();
+            Thread?.Interrupt(); // Interrupt throws a ThreadInterruptedException in the thread.
         }
 
         /// <summary>
@@ -95,7 +150,6 @@
         /// <param name="timeout">How long to wait for the task to cancel before abort it</param>
         public void ForceCancel(int timeout = 2000)
         {
-
             Cancel();
 
             for (int i = 0; i < timeout; i++)
@@ -127,16 +181,17 @@
         public WaitHandle AsyncWaitHandle => waitHandle;
 
         /// <summary>
-        /// Not implemented. Currently just returns <seealso cref="IsCompleted"/>.
+        /// Not implemented. Currently just returns <see cref="IsCompleted"/>.
         /// </summary>
         public bool CompletedSynchronously => IsCompleted;
 
         public bool IsCompleted => Actions.Count == 0;
 
         // Allows us to use the await keyword
-        public Awaiter GetAwaiter()
+        public Awaiter<TResult> GetAwaiter()
         {
             return new(this);
         }
+
     }
 }
