@@ -1,5 +1,12 @@
 ﻿namespace BetterTasks
 {
+    public class BetterTask : BetterTask<object?>
+    {
+        public BetterTask(Action action, ThreadPriority priority = ThreadPriority.Normal) : base(action, priority) { }
+        public BetterTask(Func<object?> action, ThreadPriority priority = ThreadPriority.Normal) : base(action, priority) { }
+        public BetterTask(Action<BetterTask<object?>> action, ThreadPriority priority = ThreadPriority.Normal) : base(action, priority) { }
+    }
+
     public class BetterTask<TResult> : IDisposable, IAsyncResult, ITask
     {
 
