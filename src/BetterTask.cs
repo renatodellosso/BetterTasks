@@ -5,6 +5,21 @@
         public BetterTask(Action action, ThreadPriority priority = ThreadPriority.Normal) : base(action, priority) { }
         public BetterTask(Func<object?> action, ThreadPriority priority = ThreadPriority.Normal) : base(action, priority) { }
         public BetterTask(Action<BetterTask<object?>> action, ThreadPriority priority = ThreadPriority.Normal) : base(action, priority) { }
+
+        public static new BetterTask Run(Action action, ThreadPriority priority = ThreadPriority.Normal)
+        {
+            return (BetterTask)Run(WrapAction(action), priority);
+        }
+
+        public static new BetterTask Run(Func<object?> action, ThreadPriority priority = ThreadPriority.Normal)
+        {
+            return (BetterTask)Run(WrapAction(action), priority);
+        }
+
+        public static new BetterTask Run(Action<BetterTask<object?>> action, ThreadPriority priority = ThreadPriority.Normal)
+        {
+            return (BetterTask)Run(WrapAction(action), priority);
+        }
     }
 
     public class BetterTask<TResult> : IDisposable, IAsyncResult, ITask
