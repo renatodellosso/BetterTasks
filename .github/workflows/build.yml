@@ -1,0 +1,27 @@
+# This workflow will build a .NET project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+
+name: Build
+
+on:
+    workflow_call: # Allows the workflow to be manually triggered
+        inputs:
+            configuration:
+                type: string
+                description: "The build configuration"
+                required: false
+                default: "Debug"
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v3
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v3
+              with:
+                  dotnet-version: 6.0.x
+            - name: Restore dependencies
+              run: dotnet restore
+            - name: Build (${{inputs.configuration}})
+              run: dotnet build --no-restore -c Debug

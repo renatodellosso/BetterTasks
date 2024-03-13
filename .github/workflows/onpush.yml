@@ -1,0 +1,16 @@
+name: On Push
+
+on:
+    push:
+        branches: ["master"]
+jobs:
+    build:
+        uses: ./.github/workflows/build.yml
+    updatepackage:
+        needs:
+            - build
+        uses: ./.github/workflows/updatepackage.yml
+        secrets:
+            NUGET_KEY: ${{ secrets.NUGET_KEY }}
+        with:
+            version: 1.0.2

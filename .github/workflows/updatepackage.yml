@@ -1,0 +1,35 @@
+name: Update Package
+
+on:
+    workflow_call: # Allows the workflow to be manually triggered
+        secrets:
+            NUGET_KEY:
+                description: "The API key for the NuGet package source"
+                required: true
+        inputs:
+            version:
+                type: string
+                description: "The version of the package to update"
+                required: true
+
+jobs:
+    update:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v3
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v3
+              with:
+                  dotnet-version: 6.0.x
+            - name: Restore dependencies
+              run: dotnet restore
+            - name: Build (Release)
+              run: dotnet build --no-restore -c Release /property:Version=${{ inputs.version }}
+            - name: Pack
+              run: dotnet pack -c Release /property:Version=${{ inputs.version }}
+            - name: Push package to Nuget
+              run: dotnet nuget push **/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_KEY}}
+            - name: Did not push
+              if: ${{ failure() }}
+              run: echo "The package was not pushed to NuGet"
