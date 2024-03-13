@@ -1,9 +1,31 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>BetterTasks</Title>
+    <Authors>Renato Dell'Osso</Authors>
+    <Description>A rewrite of the C# Task system. Performs about 10% faster than the built-in Task system.</Description>
+    <Copyright>Copyright 2024 Renato Dell'Osso</Copyright>
+    <PackageProjectUrl>https://github.com/renatodellosso/BetterTasks</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/renatodellosso/BetterTasks</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>Multithreading, Async, Utility</PackageTags>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Update="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
 </Project>
