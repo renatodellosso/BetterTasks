@@ -1,17 +1,17 @@
-﻿namespace BetterTasks
+﻿namespace BetterTasks;
+
+/// <summary>
+/// This interface allows us to keep lists of <see cref="BetterTask{TResult}"/> with different TResult types.
+/// </summary>
+internal interface ITask
 {
-    /// <summary>
-    /// This interface allows us to keep lists of <see cref="BetterTask{TResult}"/> with different TResult types.
-    /// </summary>
-    internal interface ITask
-    {
-        internal Thread? Thread { get; set; }
+    internal Thread? Thread { get; set; }
 
-        internal object? Result { get; set; }
+    internal object? Result { get; set; }
 
-        internal ThreadPriority Priority { get; }
+    internal ThreadPriority Priority { get; }
 
-        internal object? Execute();
-        internal void OnActionComplete();
-    }
+    internal object? Execute();
+    internal void OnActionComplete();
 }
+
