@@ -1,5 +1,7 @@
-# BetterTasks
-A rewrite of the C# Task system. Performs about 10% faster than the built-in Task system.
+# BetterTasks: Simple, fast tasks for C#
+A rewrite of the C# Task system to be simpler to use. Performs about 10% faster than the built-in Task system.
+
+Available on [NuGet](https://www.nuget.org/packages/BetterTasks).
 
 ## Installation
 Add the .dll file as a dependency for your project.
