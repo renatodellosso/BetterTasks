@@ -1,4 +1,4 @@
-# BetterTasks: Simple, fast tasks for C#
+# BetterTasks: Simple, speedy tasks for C#
 A rewrite of the C# Task system to be simpler to use. Performs about 10% faster than the built-in Task system.
 
 Available on [NuGet](https://www.nuget.org/packages/BetterTasks).
